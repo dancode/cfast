@@ -1,0 +1,61 @@
+Hot Reload Limitations (Acceptable)
+You CAN:
+
+✅ Change function implementations
+✅ Add new types
+✅ Add fields at end of structs
+✅ Change field values/defaults
+
+You CAN'T:
+
+❌ Remove types (only mark invalid)
+❌ Reorder fields
+❌ Change field types
+❌ Shrink structs
+
+
+// 1. Game.dll loads
+LoadLibrary("game.dll")
+  → get_module_info()
+  → register_types(&g_registry)
+    → Types get indices 10, 11, 12...
+
+// 2. Game.dll modifies and reloads
+Save state → Unload DLL → Load new DLL → Restore state
+  → Old types marked invalid
+  → New types registered (might reuse slots)
+  → Pointers still work (they point to static array)
+
+// 3. Editor.dll loads later
+LoadLibrary("editor.dll")
+  → Can see all types in g_registry
+  → Can modify any object using reflection
+  
+  
+  
+// Hot path - no reflection needed
+player->health = 100;  // Direct access: 1 instruction
+
+// Tool path - still fast!  
+Type* t = &g_registry.types[PLAYER_TYPE_ID];  // Array index: 2 instructions
+float* health = (char*)player + t->fields[3].offset;  // Add offset: 2 instructions
+*health = 100;  // Total: ~5 instructions vs 1, but no searching!
+
+// Doom 3's entity system (simplified)
+idTypeInfo types[MAX_TYPES];  // Static array
+void idClass::RegisterClass(const char* name, idTypeInfo* info) {
+    types[numTypes++] = *info;  // Dynamic registration
+}
+
+// Network var registration
+static CNetworkVarRegistry g_NetworkVars[MAX_NETWORKED_VARS];
+void RegisterNetworkVar(const char* name, int offset) {
+    g_NetworkVars[g_NumNetworkVars++] = {name, offset};
+}
+
+// Simplified version of their reflection
+struct TypeRegistry {
+    TypeInfo types[2048];  // Fixed array
+    uint16_t count;
+};
+// DLLs call RegisterType() at startup
