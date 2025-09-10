@@ -52,6 +52,8 @@ main( void )
         .flags     = 0,
     };
 
+    (void)player;
+
     // Use reflection for editor
     Type* player_type = type_find_by_hash( hash_string( "Player" ) );
     if ( player_type )
@@ -62,37 +64,37 @@ main( void )
         FILE* f = fopen( "player.json", "w" );
         if ( f )
         {
-            serialize_to_json( &player, player_type, f );
+            // serialize_to_json( &player, player_type, f );
             fclose( f );
             printf( "\nSerialized to player.json\n" );
         }
     }
 
-    // // Fast path - direct access for game loop
-    // clock_t start = clock();
-    // for ( int i = 0; i < 1000000; i++ )
-    // {
-    //     // Direct struct access - no reflection overhead
-    //     player.health.current = 100.0f;
-    //     player.transform.position.x += player.speed * 0.016f;
-    // }
-    // clock_t end = clock();
-    // printf( "\n1M direct updates: %.3f seconds\n", (double)( end - start ) / CLOCKS_PER_SEC );
-    //
-    // // Reflection path - for tools
-    // start = clock();
-    // for ( int i = 0; i < 1000000; i++ )
-    // {
-    //     // Reflection access - still pretty fast with static arrays!
-    //     float* health = (float*)field_get_ptr( &player, player_type, PLAYER_HEALTH );
-    //     *health       = 100.0f;
-    // }
-    // end = clock();
-    // printf( "1M reflection updates: %.3f seconds\n", (double)( end - start ) / CLOCKS_PER_SEC );
-    //
-    // printf( "\nRegistry stats:\n" );
-    // printf( "  Types registered: %u\n", g_registry.type_count );
-    // printf( "  Memory used: %zu KB\n", sizeof( g_registry ) / 1024 );
+    // Fast path - direct access for game loop
+    clock_t start = clock();
+    for ( int i = 0; i < 1000000; i++ )
+    {
+        // Direct struct access - no reflection overhead
+        player.health.current = 100.0f;
+        player.transform.position.x += player.speed * 0.016f;
+    }
+    clock_t end = clock();
+    printf( "\n1M direct updates: %.3f seconds\n", (double)( end - start ) / CLOCKS_PER_SEC );
+
+    // Reflection path - for tools
+    start = clock();
+    for ( int i = 0; i < 1000000; i++ )
+    {
+        // Reflection access - still pretty fast with static arrays!
+        float* health = (float*)field_get_ptr( &player, player_type, PLAYER_HEALTH );
+        *health       = 100.0f;
+    }
+    end = clock();
+    printf( "1M reflection updates: %.3f seconds\n", (double)( end - start ) / CLOCKS_PER_SEC );
+
+    printf( "\nRegistry stats:\n" );
+    printf( "  Types registered: %u\n", g_registry.type_count );
+    printf( "  Memory used: %zu KB\n", sizeof( g_registry ) / 1024 );
 
     return 0;
 }
